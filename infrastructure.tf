@@ -10,8 +10,9 @@ resource "aws_vpc" "saa_milestone" {
   enable_dns_hostnames = true
   enable_dns_support = true
   instance_tenancy = "default"
+
   tags = {
-    Name = "saa-milestone"
+    Name = "SAA Milestone"
   }
 }
 
@@ -26,7 +27,7 @@ resource "aws_subnet" "public_subnet_a" {
   availability_zone = data.aws_availability_zones.az.names[0]
 
   tags = {
-    Name = "public-az-1"
+    Name = "Public AZ 1 (A)"
   }
 }
 
@@ -37,19 +38,57 @@ resource "aws_subnet" "private_subnet_a" {
   availability_zone = data.aws_availability_zones.az.names[0]
 
   tags = {
-    Name = "private-az-1"
+    Name = "Private AZ 1 (A)"
   }
 }
 
-# SG for bastion host
-# resource "aws_security_group" "sg_bastion_host" {
-#   name = "sg_bastion_host"
-#   description = "Allow SSH access from anywhere"
-#   ingress {
-#     from_port = 22
-#     to_port = 22
-#     protocol = "tcp"
-#     cidr_blocks = ["0.0.0.0/0"]
-#   }
+# security group for bastion host
+resource "aws_security_group" "sg_bastion_host" {
+  name = "sg_bastion_host"
+  description = "Allow SSH access from anywhere"
+  vpc_id = aws_vpc.saa_milestone.id
+
+  ingress {
+    from_port = 22
+    to_port = 22
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "SG Bastion Host"
+  }
   # egress는 필요없음 어짜피 전부 열거니까
+}
+
+data "aws_ami" "amazon_linux_2_ami" {
+  owners = ["amazon"]
+  most_recent = true
+
+  filter {
+    name = "name"
+    values = ["amzn2-ami-kernel-5.10-hvm-2.0.20220121.0-x86_64-gp2"]
+  }
+
+  filter {
+    name   = "root-device-type"
+    values = ["ebs"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+
+# bastion host (EC2)
+# resource "aws_instance" "bastion_host" {
+#   ami = data.aws_ami.amazon_linux_2_ami.id
+#   instance_type = "t2.micro"
+#   availability_zone = aws_subnet.public_subnet_a.availability_zone
+#   key_name = aws_key_pair.admin.key_name
+
+#   tags = {
+#     Name = "Bastion Host"
+#   }
 # }
