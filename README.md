@@ -2,6 +2,8 @@
 
 참고) https://registry.terraform.io/providers/hashicorp/aws/latest/docs
 
+![diagram](./diagram.png)
+
 ## Basic Usage
 1. `terraform init`
 2. `terraform plan`
