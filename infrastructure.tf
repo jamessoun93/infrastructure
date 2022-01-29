@@ -42,13 +42,13 @@ resource "aws_subnet" "private_subnet_a" {
   }
 }
 
-# resource "aws_internet_gateway" "igw_saa_milestone" {
-#   vpc_id = aws_vpc.saa_milestone.id
+resource "aws_internet_gateway" "igw_saa_milestone" {
+  vpc_id = aws_vpc.saa_milestone.id
 
-#   tags = {
-#     Name = "IGW SAA Milestone"
-#   }
-# }
+  tags = {
+    Name = "IGW SAA Milestone"
+  }
+}
 
 # security group for bastion host
 resource "aws_security_group" "sg_bastion_host" {
