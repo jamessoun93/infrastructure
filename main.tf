@@ -94,7 +94,7 @@ resource "aws_route" "public_route_b" {
   gateway_id             = aws_internet_gateway.igw_saa_milestone.id
 }
 
-# security group for bastion host
+# security group for the bastion host
 resource "aws_security_group" "sg_bastion_host" {
   name        = "sg_bastion_host"
   description = "Allow SSH access from anywhere"
@@ -113,6 +113,25 @@ resource "aws_security_group" "sg_bastion_host" {
   # egress는 필요없음 어짜피 전부 열거니까
 }
 
+# security group for the private instance
+resource "aws_security_group" "sg_private_instance" {
+  name        = "sg_private_instance"
+  description = "Allow SSH access from the Bastion Host"
+  vpc_id      = aws_vpc.saa_milestone.id
+
+  ingress {
+    from_port       = 22
+    to_port         = 22
+    protocol        = "tcp"
+    security_groups = [aws_security_group.sg_bastion_host.id]
+  }
+
+  tags = {
+    Name = "SG Private Instance"
+  }
+  # egress는 필요없음 어짜피 전부 열거니까
+}
+
 data "aws_ami" "amazon_linux_2_ami" {
   owners      = ["amazon"]
   most_recent = true
@@ -124,7 +143,7 @@ data "aws_ami" "amazon_linux_2_ami" {
 }
 
 # bastion host (EC2)
-resource "aws_instance" "bastion_host" {
+resource "aws_instance" "bastion_host_a" {
   ami                         = data.aws_ami.amazon_linux_2_ami.id
   instance_type               = "t2.micro"
   availability_zone           = aws_subnet.public_subnet_a.availability_zone
@@ -134,6 +153,20 @@ resource "aws_instance" "bastion_host" {
   associate_public_ip_address = true
 
   tags = {
-    Name = "Bastion Host"
+    Name = "Bastion Host A"
+  }
+}
+
+# private instance (EC2)
+resource "aws_instance" "private_ec2_instance_a" {
+  ami                    = data.aws_ami.amazon_linux_2_ami.id
+  instance_type          = "t2.micro"
+  availability_zone      = aws_subnet.private_subnet_a.availability_zone
+  key_name               = aws_key_pair.admin.key_name
+  vpc_security_group_ids = [aws_security_group.sg_private_instance.id]
+  subnet_id              = aws_subnet.private_subnet_a.id
+
+  tags = {
+    Name = "Private Instance A"
   }
 }
