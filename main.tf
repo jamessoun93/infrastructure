@@ -1,9 +1,3 @@
-# key pair
-resource "aws_key_pair" "admin" {
-  key_name   = "admin"
-  public_key = file("~/.ssh/id_rsa.pub")
-}
-
 # vpc
 resource "aws_vpc" "saa_milestone" {
   cidr_block           = "10.0.0.0/16"
@@ -94,6 +88,12 @@ resource "aws_route" "public_route_b" {
   gateway_id             = aws_internet_gateway.igw_saa_milestone.id
 }
 
+resource "aws_route" "private_route_b" {
+  route_table_id         = aws_route_table.private_route_table.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_nat_gateway.nat_gateway.id
+}
+
 # security group for the bastion host
 resource "aws_security_group" "sg_bastion_host" {
   name        = "sg_bastion_host"
@@ -147,10 +147,11 @@ resource "aws_instance" "bastion_host_a" {
   ami                         = data.aws_ami.amazon_linux_2_ami.id
   instance_type               = "t2.micro"
   availability_zone           = aws_subnet.public_subnet_a.availability_zone
-  key_name                    = aws_key_pair.admin.key_name
+  key_name                    = "admin"
   vpc_security_group_ids      = [aws_security_group.sg_bastion_host.id]
   subnet_id                   = aws_subnet.public_subnet_a.id
   associate_public_ip_address = true
+  user_data                   = file("ec2_init.sh")
 
   tags = {
     Name = "Bastion Host A"
@@ -162,11 +163,28 @@ resource "aws_instance" "private_ec2_instance_a" {
   ami                    = data.aws_ami.amazon_linux_2_ami.id
   instance_type          = "t2.micro"
   availability_zone      = aws_subnet.private_subnet_a.availability_zone
-  key_name               = aws_key_pair.admin.key_name
+  key_name               = "admin"
   vpc_security_group_ids = [aws_security_group.sg_private_instance.id]
   subnet_id              = aws_subnet.private_subnet_a.id
+  user_data              = file("ec2_init.sh")
 
   tags = {
     Name = "Private Instance A"
+  }
+}
+
+# elastic ip
+resource "aws_eip" "eip_nat_gateway" {
+  vpc = true
+}
+
+# nat gateway
+resource "aws_nat_gateway" "nat_gateway" {
+  allocation_id     = aws_eip.eip_nat_gateway.id
+  subnet_id         = aws_subnet.public_subnet_a.id
+  connectivity_type = "public"
+
+  tags = {
+    Name = "NATGW SAA Milestone"
   }
 }
